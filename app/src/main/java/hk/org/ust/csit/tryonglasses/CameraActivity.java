@@ -2,8 +2,17 @@ package hk.org.ust.csit.tryonglasses;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.media.AudioManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.media.SoundPool;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -37,12 +46,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.opencv.imgcodecs.Imgcodecs.imread;
 
-
-public class CameraActivity extends Activity implements CvCameraViewListener2 {
+public class CameraActivity extends Activity implements SensorEventListener, CvCameraViewListener2  {
 
     private static final String    TAG                 = "OCVSample::Activity";
     private static final Scalar    FACE_RECT_COLOR     = new Scalar(0, 0, 0, 0);
@@ -90,6 +99,47 @@ public class CameraActivity extends Activity implements CvCameraViewListener2 {
 
     double xCenter = -1;
     double yCenter = -1;
+
+    //shake sensor
+    private SensorManager mSensorManager;
+    private float mAccel; // acceleration apart from gravity
+    private float mAccelCurrent; // current acceleration including gravity
+    private float mAccelLast; // last acceleration including gravity
+    private ArrayList<Integer> myImageList ;
+    private int getGlassNo = 0;
+    private int realGlassNo = 0;
+
+    public static final int S1 = R.raw.beep07;
+    private static SoundPool soundPool;
+    private static HashMap soundPoolMap;
+    private static int beepID=0;
+    /** Populate the SoundPool*/
+    public static void initSounds(Context context) {
+        soundPool = new SoundPool(1, AudioManager.STREAM_MUSIC, 5);
+       beepID = soundPool.load(context, R.raw.beep07, 1);
+        //soundPool = new SoundPool(2, AudioManager.STREAM_MUSIC, 100);
+        //soundPoolMap = new HashMap(1);
+        //soundPoolMap.put( S1, soundPool.load(context, R.raw.beep, 1) );
+    }
+
+    private final SensorEventListener mSensorListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent se) {
+            float x = se.values[0];
+            float y = se.values[1];
+            float z = se.values[2];
+            mAccelLast = mAccelCurrent;
+            mAccelCurrent = (float) Math.sqrt((double) (x*x + y*y + z*z));
+            float delta = mAccelCurrent - mAccelLast;
+            mAccel = mAccel * 0.9f + delta; // perform low-cut filter
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            // TODO Auto-generated method stub
+
+        }
+    };
+
 
     private BaseLoaderCallback  mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -170,7 +220,24 @@ public class CameraActivity extends Activity implements CvCameraViewListener2 {
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
+
         Log.i(TAG, "called onCreate");
+        Intent testIntent = getIntent();
+        myImageList=testIntent.getIntegerArrayListExtra("imageArray");
+
+       /* myImageList.add(R.drawable.glasses8);
+        myImageList.add(R.drawable.glasses6);
+        myImageList.add(R.drawable.glasses3);
+*/
+        realGlassNo = myImageList.get(getGlassNo);
+
+        //shake setting
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mSensorManager.registerListener(mSensorListener, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+        mAccel = 0.00f;
+        mAccelCurrent = SensorManager.GRAVITY_EARTH;
+        mAccelLast = SensorManager.GRAVITY_EARTH;
+
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -233,10 +300,12 @@ public class CameraActivity extends Activity implements CvCameraViewListener2 {
     @Override
     public void onPause()
     {
+        mSensorManager.unregisterListener(mSensorListener);
         super.onPause();
         if (mOpenCvCameraView != null)
             mOpenCvCameraView.disableView();
     }
+
 
     @Override
     public void onResume()
@@ -249,6 +318,7 @@ public class CameraActivity extends Activity implements CvCameraViewListener2 {
             Log.d(TAG, "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
+        mSensorManager.registerListener(mSensorListener, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     public void onDestroy() {
@@ -269,6 +339,31 @@ public class CameraActivity extends Activity implements CvCameraViewListener2 {
     }
 
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
+
+        if (mAccel > 9) {
+            Log.d("","Shake Shake");
+            getGlassNo = getGlassNo +1;
+            getGlassNo = getGlassNo % 3 ;
+            realGlassNo = myImageList.get(getGlassNo);
+            /*
+            Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            Ringtone ringtoneSound = RingtoneManager.getRingtone(getApplicationContext(), ringtoneUri);
+
+            if (ringtoneSound != null) {
+                ringtoneSound.play();
+            }*/
+            if(soundPool == null || soundPoolMap == null){
+                initSounds(getApplicationContext());
+            }
+            float volume = 1.0f;
+            // whatever in the range = 0.0 to 1.0
+            // play sound with same right and left volume, with a priority of 1,
+            // zero repeats (i.e play once), and a playback rate of 1f
+            int streamID = -1;
+            do {
+                streamID = soundPool.play(beepID, volume, volume, 1, 0, 1f);
+            } while(streamID==0);
+        }
 
         mRgba = inputFrame.rgba();
         mGray = inputFrame.gray();
@@ -297,11 +392,11 @@ public class CameraActivity extends Activity implements CvCameraViewListener2 {
 
         Rect[] facesArray = faces.toArray();
         if(facesArray.length==0){
-            Log.d("No faceDetected", "Current learn_frames = "+learn_frames);
+            //Log.d("No faceDetected", "Current learn_frames = "+learn_frames);
             learn_frames = 0;
         }
         else {
-            Log.d("Face Detected", "New learn_frames = "+learn_frames);
+           // Log.d("Face Detected", "New learn_frames = "+learn_frames);
 
             for (int i = 0; i < facesArray.length; i++) {
                 /*
@@ -394,13 +489,13 @@ public class CameraActivity extends Activity implements CvCameraViewListener2 {
                     //Log.d("left eye area x" ,eyearea_left.x+","+eyearea_left.y);
                     if (rightEyeArray!=null && leftEyeArray!=null){
                         try {
-                            Log.d("Right eye info","Length = "+rightEyeArray.length +", x = "+rightEyeArray[0].x +", y = "+rightEyeArray[0].y);
-                            Log.d("Left eye info","Length = "+leftEyeArray.length +", x = "+leftEyeArray[0].x +", y = "+leftEyeArray[0].y);
+                           // Log.d("Right eye info","Length = "+rightEyeArray.length +", x = "+rightEyeArray[0].x +", y = "+rightEyeArray[0].y);
+                           // Log.d("Left eye info","Length = "+leftEyeArray.length +", x = "+leftEyeArray[0].x +", y = "+leftEyeArray[0].y);
                             double dist = Math.sqrt(Math.pow(((rightEyeArray[0].x+eyearea_right.x)-(leftEyeArray[0].x + eyearea_left.x)),2)+Math.pow((rightEyeArray[0].y+eyearea_right.x)-(leftEyeArray[0].y+eyearea_left.y),2));
 
-                            Log.d("Distance between ", "dist = " + dist);
+                           // Log.d("Distance between ", "dist = " + dist);
 
-                            Mat myMat = Utils.loadResource(this, R.drawable.glasses8);
+                            Mat myMat = Utils.loadResource(this, realGlassNo);
                             Imgproc.cvtColor(myMat,myMat,Imgproc.COLOR_RGB2BGRA);
                             double leftEyeY=myMat.height() /2;
                             double rightEyeY=myMat.height() /2;
@@ -414,7 +509,7 @@ public class CameraActivity extends Activity implements CvCameraViewListener2 {
                             //Size dsize = new Size(r.width, r.height);
                             Size dsize = new Size(myMat.width() * factor, myMat.height() * factor);
                             Mat resizeLens = new Mat();
-                            Mat mask = Utils.loadResource(this, R.drawable.glasses8, 0);
+                            Mat mask = Utils.loadResource(this, realGlassNo, 0);
                             Mat resizemask = new Mat();
                             Imgproc.resize(myMat, resizeLens, dsize);
                             Imgproc.resize(mask, resizemask, dsize);
@@ -752,5 +847,14 @@ public class CameraActivity extends Activity implements CvCameraViewListener2 {
         learn_frames = 0;
     }
 
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
 }
 

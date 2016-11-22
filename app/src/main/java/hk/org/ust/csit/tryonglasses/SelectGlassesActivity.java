@@ -49,12 +49,18 @@ public class SelectGlassesActivity extends AppCompatActivity {
                     if(!parms.contains(resId)){
                         parms.add(resId);
                     }
+                    Toast.makeText(getApplicationContext(),"selected",
+                            Toast.LENGTH_SHORT).show();
                 }else{
+                    Toast.makeText(getApplicationContext(),"unselected",
+                            Toast.LENGTH_SHORT).show();
                     v.setSelected(false);
                     v.setBackgroundColor(Color.rgb(255, 255, 255));
                     if(parms.contains(resId)){
                         parms.remove(resId);
                     }
+
+
                 }
                 Toast.makeText(getApplicationContext(),"Check ed"+resId,
                         Toast.LENGTH_SHORT).show();

@@ -340,10 +340,10 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 
-        if (mAccel > 9) {
+        if (mAccel > 12) {
             Log.d("","Shake Shake");
             getGlassNo = getGlassNo +1;
-            getGlassNo = getGlassNo % 3 ;
+            getGlassNo = getGlassNo % myImageList.size() ;
             realGlassNo = myImageList.get(getGlassNo);
             /*
             Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);

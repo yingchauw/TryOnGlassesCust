@@ -9,19 +9,14 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
 import android.media.SoundPool;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.SeekBar;
 import android.widget.TextView;
-
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -40,16 +35,12 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.objdetect.Objdetect;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-
-import static org.opencv.imgcodecs.Imgcodecs.imread;
 
 public class CameraActivity extends Activity implements SensorEventListener, CvCameraViewListener2  {
 
@@ -69,8 +60,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
     private MenuItem mItemFace40;
     private MenuItem mItemFace30;
     private MenuItem mItemFace20;
-    private Mat mRgba;
-    private Mat mGray;
+    private Mat mRgba,myMat,mGray;
     private File mCascadeFile;
     private File mCascadeFileEye;
     private CascadeClassifier mJavaDetector;
@@ -80,8 +70,6 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
     private float mRelativeFaceSize = 0.2f;
     private int mAbsoluteFaceSize = 0;
     private CameraBridgeViewBase   mOpenCvCameraView;
-   // private SeekBar mMethodSeekbar;
-    private TextView mValue;
     double xCenter = -1;
     double yCenter = -1;
     //shake sensor
@@ -92,18 +80,13 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
     private ArrayList<Integer> myImageList ;
     private int getGlassNo = 0;
     private int realGlassNo = 0;
-    public static final int S1 = R.raw.beep07;
     private static SoundPool soundPool;
-    private static HashMap soundPoolMap;
     private static int beepID=0;
 
     /** Populate the SoundPool*/
     public static void initSounds(Context context) {
         soundPool = new SoundPool(1, AudioManager.STREAM_MUSIC, 5);
         beepID = soundPool.load(context, R.raw.beep07, 1);
-        //soundPool = new SoundPool(2, AudioManager.STREAM_MUSIC, 100);
-        //soundPoolMap = new HashMap(1);
-        //soundPoolMap.put( S1, soundPool.load(context, R.raw.beep, 1) );
     }
 
     // detect shake movement
@@ -220,7 +203,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
         mOpenCvCameraView.setCvCameraViewListener(this);
 
         //mMethodSeekbar = (SeekBar) findViewById(R.id.methodSeekBar);
-        mValue = (TextView) findViewById(R.id.method);
+        //mValue = (TextView) findViewById(R.id.method);
 
         /*
         mMethodSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -317,7 +300,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
             getGlassNo = getGlassNo % myImageList.size() ;
             realGlassNo = myImageList.get(getGlassNo);
 
-            if(soundPool == null || soundPoolMap == null){
+            if(soundPool == null ){
                 initSounds(getApplicationContext());
             }
             float volume = 1.0f;
@@ -357,23 +340,10 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
             learn_frames = 0;
         }
         else {
-            // Log.d("Face Detected", "New learn_frames = "+learn_frames);
-
             for (int i = 0; i < facesArray.length; i++) {
-                /*
-                                    Imgproc.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(),
-                                    FACE_RECT_COLOR, 3);
-                                   */
                 xCenter = (facesArray[i].x + facesArray[i].width + facesArray[i].x) / 2;
                 yCenter = (facesArray[i].y + facesArray[i].y + facesArray[i].height) / 2;
-                Point center = new Point(xCenter, yCenter);
 
-                //Imgproc.circle(mRgba, center, 10, new Scalar(255, 0, 0, 255), 3);
-
-              /*  Imgproc.putText(mRgba, "[" + center.x + "," + center.y + "]",
-                        new Point(center.x + 20, center.y + 20),
-                        Core.FONT_HERSHEY_SIMPLEX, 0.7, new Scalar(255, 255, 255, 255));
-                        */
                 Rect r = facesArray[i];
                 // compute the eye area
                 Rect eyearea = new Rect(r.x + r.width / 8,
@@ -390,45 +360,6 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                         (int) (r.y + (r.height / 4.5)),
                         (r.width - 2 * r.width / 16) / 2, (int) (r.height / 3.0));
                 // draw the area - mGray is working grayscale mat, if you want to
-
-                // see area in rgb preview, change mGray to mRgba
-                // Bitmap bmp = BitmapFactory.decodeFile(filename);
-                //Bitmap bMap=BitmapFactory.decodeResource(getResources(),R.drawable.icon);
-                //Mat imgToProcess = null;
-                   /* try {
-                        String filename = "C:\\Users\\yingc\\Desktop\\eyeTrackSample-master\\eyeTrackSample-master\\eyeTrackSample\\src\\main\\res\\drawable\\icon.png";
-
-
-
-
-                        //Bitmap bMap=BitmapFactory.decodeFile(filename);
-                        //bMap=makeBlackTransparent(bMap);
-
-                        //Mat myMat = new Mat();
-                        //Utils.bitmapToMat(bMap,myMat);
-
-                        Mat myMat = Utils.loadResource(this, R.drawable.glasses2);
-
-
-                        Size rSize = new Size(r.x, r.y);
-                        Mat resizeLens = new Mat();
-                        Imgproc.resize(myMat, resizeLens, rSize);
-
-                        resizeLens.copyTo(mRgba.submat(new Rect(r.x, r.y, resizeLens.width(), resizeLens.height())));
-                    }
-                    catch(Exception e){
-
-                    }*/
-
-                //*/
-
-                //Utils.bitmapToMat(bmp,myMat);
-
-                    /*
-                    Imgproc.rectangle(mRgba, eyearea_left.tl(), eyearea_left.br(),
-                            new Scalar(255, 0, 0, 255), 2);
-                    Imgproc.rectangle(mRgba, eyearea_right.tl(), eyearea_right.br(),
-                            new Scalar(255, 0, 0, 255), 2);*/
 
                 if (learn_frames < 5) {
                     teplateRight = get_template(mJavaDetectorEye, eyearea_right, 24);
@@ -447,19 +378,13 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
                     Rect [] rightEyeArray = getEyeRec(mJavaDetectorEye, eyearea_right, 24);
                     Rect [] leftEyeArray = getEyeRec(mJavaDetectorEye, eyearea_left, 24);
-                    //Log.d("left eye area x" ,eyearea_left.x+","+eyearea_left.y);
+
                     if (rightEyeArray!=null && leftEyeArray!=null){
                         try {
-                            // Log.d("Right eye info","Length = "+rightEyeArray.length +", x = "+rightEyeArray[0].x +", y = "+rightEyeArray[0].y);
-                            // Log.d("Left eye info","Length = "+leftEyeArray.length +", x = "+leftEyeArray[0].x +", y = "+leftEyeArray[0].y);
                             double dist = Math.sqrt(Math.pow(((rightEyeArray[0].x+eyearea_right.x)-(leftEyeArray[0].x + eyearea_left.x)),2)+Math.pow((rightEyeArray[0].y+eyearea_right.x)-(leftEyeArray[0].y+eyearea_left.y),2));
 
-                            // Log.d("Distance between ", "dist = " + dist);
-
-                            Mat myMat = Utils.loadResource(this, realGlassNo);
+                            myMat = Utils.loadResource(this, realGlassNo);
                             Imgproc.cvtColor(myMat,myMat,Imgproc.COLOR_RGB2BGRA,4);
-
-
                             double leftEyeY=myMat.height() /2;
                             double rightEyeY=myMat.height() /2;
                             double leftEyeX=myMat.width()/4;
@@ -477,57 +402,15 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                             Imgproc.resize(myMat, resizeLens, dsize);
                             Imgproc.resize(mask, resizemask, dsize);
                             resizeLens.copyTo(mRgba.submat(new Rect(eyearea_right.x, eyearea_right.y , resizeLens.width(), resizeLens.height())), resizemask);
-                            //resizeLens.copyTo(mRgba.submat(new Rect(eyearea_right.x, eyearea_right.y , resizeLens.width(), resizeLens.height())));
-                            /*
-                            Mat srcBGR, srcRGBA;
-                            try {
-                                srcBGR = Utils.loadResource(CameraActivity.this, realGlassNo);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                srcBGR = null;
-                            }
-                            srcRGBA = new Mat(); //RGBA format
-                            Imgproc.cvtColor(srcBGR, srcRGBA, Imgproc.COLOR_BGR2RGBA);
-                            Bitmap bm = Bitmap.createBitmap(srcRGBA.cols(), srcRGBA.rows(),Bitmap.Config.ARGB_8888);
-                            Utils.matToBitmap(srcRGBA, bm);
-                            srcBGR.copyTo(mRgba.submat(new Rect(eyearea_right.x, eyearea_right.y , resizeLens.width(), resizeLens.height())),srcRGBA);
-                            */
                             //resizeLens.copyTo(mRgba.submat(new Rect(r.x, r.y, resizeLens.width(), resizeLens.height())), resizemask);
                         }
                         catch(Exception ex){}
                     }
-
-
-                    /*
-                    Point matLeftLoc = getEyeLocation(eyearea_left, teplateLeft, method);
-                    Point matRightLoc = getEyeLocation(eyearea_right, teplateLeft, method);
-                    if(matLeftLoc != null && matRightLoc!= null){
-                        Log.d("Left Eye location = ", "result = "+matLeftLoc.x+","+matLeftLoc.y);
-                        Log.d("Right Eye location = ", "result = "+matLeftLoc.x+","+matLeftLoc.y);
-                        // original version
-                        try {
-
-                            Mat myMat = Utils.loadResource(this, R.drawable.glasses3);
-                            Size dsize = new Size(r.width, r.height);
-                            Mat resizeLens = new Mat();
-                            Mat mask = Utils.loadResource(this, R.drawable.glasses3, 0);
-                            Mat resizemask = new Mat();
-                            Imgproc.resize(myMat, resizeLens, dsize);
-                            Imgproc.resize(mask, resizemask, dsize);
-                            resizeLens.copyTo(mRgba.submat(new Rect(r.x, r.y, resizeLens.width(), resizeLens.height())), resizemask);
-
-                        } catch (Exception e) {
-                            // Log.e(e.toString());
-                        }
-                    }
-                    else{
-                        Log.d("Eye location"," no  eye detection");
-                    }
-    */
                 }
 
             }
         }
+
         return mRgba;
     }
     private static Bitmap makeBlackTransparent(Bitmap image) {

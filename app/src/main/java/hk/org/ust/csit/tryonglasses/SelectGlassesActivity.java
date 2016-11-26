@@ -42,26 +42,26 @@ public class SelectGlassesActivity extends AppCompatActivity {
 
                 int resId = ImageAdapter.mThumbIds[position];
 
-                if (!v.isSelected()) {
-                    v.setSelected(true);
-                    v.setBackgroundColor(Color.rgb(0, 255, 255));
 
                     if(!parms.contains(resId)){
+                        Toast.makeText(getApplicationContext(),"selected",
+                                Toast.LENGTH_SHORT).show();
+                        v.setBackgroundColor(Color.rgb(0, 255, 255));
                         parms.add(resId);
-                    }
-                    Toast.makeText(getApplicationContext(),"selected",
-                            Toast.LENGTH_SHORT).show();
-                }else{
-                    Toast.makeText(getApplicationContext(),"unselected",
-                            Toast.LENGTH_SHORT).show();
-                    v.setSelected(false);
-                    v.setBackgroundColor(Color.rgb(255, 255, 255));
-                    if(parms.contains(resId)){
-                        parms.remove(resId);
+
+
+                    }else{
+
+                        Toast.makeText(getApplicationContext(),"unselected",
+                                Toast.LENGTH_SHORT).show();
+                        v.setBackgroundColor(Color.rgb(255, 255, 255));
+
+                        int index = parms.indexOf(resId);
+                        parms.remove(index);
                     }
 
 
-                }
+
                 Toast.makeText(getApplicationContext(),"Check ed"+resId,
                         Toast.LENGTH_SHORT).show();
 

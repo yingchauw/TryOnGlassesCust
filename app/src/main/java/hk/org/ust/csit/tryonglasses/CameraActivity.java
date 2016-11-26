@@ -37,6 +37,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.objdetect.Objdetect;
@@ -495,8 +496,10 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
                            // Log.d("Distance between ", "dist = " + dist);
 
-                            Mat myMat = Utils.loadResource(this, realGlassNo);
-                            Imgproc.cvtColor(myMat,myMat,Imgproc.COLOR_RGB2BGRA);
+
+                           Mat myMat = Utils.loadResource(this, realGlassNo, Imgcodecs.IMREAD_UNCHANGED);
+                    //        Mat myMat = Utils.loadResource()
+                        //    Imgproc.cvtColor(myMat,myMat,Imgproc.COLOR_RGB2BGRA);
                             double leftEyeY=myMat.height() /2;
                             double rightEyeY=myMat.height() /2;
                             double leftEyeX=myMat.width()/4;
@@ -506,7 +509,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
                             double factor = dist/glassDist;
 
-                            //Size dsize = new Size(r.width, r.height);
+                        //    Size dsize = new Size(r.width, r.height);
                             Size dsize = new Size(myMat.width() * factor, myMat.height() * factor);
                             Mat resizeLens = new Mat();
                             Mat mask = Utils.loadResource(this, realGlassNo, 0);

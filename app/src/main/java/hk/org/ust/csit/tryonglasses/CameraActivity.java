@@ -16,7 +16,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.TextView;
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -65,7 +64,8 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
     private File mCascadeFile;
     private File mCascadeFileEye;
     private CascadeClassifier mJavaDetector;
-    private CascadeClassifier mJavaDetectorEye;
+    private CascadeClassifier mJavaDetectorLeftEye;
+    private CascadeClassifier mJavaDetectorRightEye;
     private int mDetectorType = JAVA_DETECTOR;
     private String[] mDetectorName;
     private float mRelativeFaceSize = 0.2f;
@@ -108,7 +108,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
         }
     };
 
-    private BaseLoaderCallback  mLoaderCallback = new BaseLoaderCallback(this) {
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
             switch (status) {
@@ -128,6 +128,15 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                         }
                         is.close();
                         os.close();
+
+                        mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+                        if (mJavaDetector.empty()) {
+                            Log.e(TAG, "Failed to load cascade classifier");
+                            mJavaDetector = null;
+                        } else
+                            Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
+                        cascadeDir.delete();
+
                         // load cascade file from application resources
                         InputStream ise = getResources().openRawResource(R.raw.haarcascade_lefteye_2splits);
                         File cascadeDirEye = getDir("cascade", Context.MODE_PRIVATE);
@@ -139,25 +148,38 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                         }
                         ise.close();
                         ose.close();
-                        mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
-                        if (mJavaDetector.empty()) {
-                            Log.e(TAG, "Failed to load cascade classifier");
-                            mJavaDetector = null;
-                        } else
-                            Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
-                        mJavaDetectorEye = new CascadeClassifier(mCascadeFileEye.getAbsolutePath());
-                        if (mJavaDetectorEye.empty()) {
+                        mJavaDetectorLeftEye = new CascadeClassifier(mCascadeFileEye.getAbsolutePath());
+                        if (mJavaDetectorLeftEye.empty()) {
                             Log.e(TAG, "Failed to load cascade classifier for eye");
-                            mJavaDetectorEye = null;
+                            mJavaDetectorLeftEye = null;
                         } else
                             Log.i(TAG, "Loaded cascade classifier from " + mCascadeFileEye.getAbsolutePath());
-                        cascadeDir.delete();
+                        cascadeDirEye.delete();
+
+
+                        // load cascade file from application resources
+                       ise = getResources().openRawResource(R.raw.haarcascade_righteye_2splits);
+                        mCascadeFileEye = new File(cascadeDirEye, "haarcascade_righteye_2splits.xml");
+                        ose = new FileOutputStream(mCascadeFileEye);
+
+                        while ((bytesRead = ise.read(buffer)) != -1) {
+                            ose.write(buffer, 0, bytesRead);
+                        }
+                        ise.close();
+                        ose.close();
+                        mJavaDetectorRightEye = new CascadeClassifier(mCascadeFileEye.getAbsolutePath());
+                        if (mJavaDetectorRightEye.empty()) {
+                            Log.e(TAG, "Failed to load cascade classifier for eye");
+                            mJavaDetectorRightEye = null;
+                        } else
+                            Log.i(TAG, "Loaded cascade classifier from " + mCascadeFileEye.getAbsolutePath());
                         cascadeDirEye.delete();
 
                     } catch (IOException e) {
                         e.printStackTrace();
                         Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
                     }
+
                     mOpenCvCameraView.enableFpsMeter();
                     mOpenCvCameraView.setCameraIndex(1);
                     mOpenCvCameraView.enableView();
@@ -352,13 +374,13 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                 // draw the area - mGray is working grayscale mat, if you want to
 
                 if (learn_frames < 5) {
-                    teplateRight = get_template(mJavaDetectorEye, eyearea_right, 24);
-                    teplateLeft = get_template(mJavaDetectorEye, eyearea_left, 24);
+                    teplateRight = get_template(mJavaDetectorRightEye, eyearea_right, 24);
+                    teplateLeft = get_template(mJavaDetectorLeftEye, eyearea_left, 24);
                     learn_frames++;
                     Log.d("Error", "Reach Frame");
                 } else {
-                    Rect [] rightEyeArray = getEyeRec(mJavaDetectorEye, eyearea_right, 24);
-                    Rect [] leftEyeArray = getEyeRec(mJavaDetectorEye, eyearea_left, 24);
+                    Rect [] rightEyeArray = getEyeRec(mJavaDetectorRightEye, eyearea_right, 24);
+                    Rect [] leftEyeArray = getEyeRec(mJavaDetectorLeftEye, eyearea_left, 24);
 
                     if (rightEyeArray!=null && leftEyeArray!=null){
                         try {

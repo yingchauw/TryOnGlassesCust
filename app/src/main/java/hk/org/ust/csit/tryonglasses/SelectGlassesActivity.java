@@ -42,18 +42,17 @@ public class SelectGlassesActivity extends AppCompatActivity {
 
                 int resId = ImageAdapter.mThumbIds[position];
 
-
                     if(!parms.contains(resId)){
-                        Toast.makeText(getApplicationContext(),"selected",
-                                Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(getApplicationContext(),"selected",
+//                                Toast.LENGTH_SHORT).show();
                         v.setBackgroundColor(Color.rgb(0, 255, 255));
                         parms.add(resId);
 
 
                     }else{
 
-                        Toast.makeText(getApplicationContext(),"unselected",
-                                Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(getApplicationContext(),"unselected",
+//                                Toast.LENGTH_SHORT).show();
                         v.setBackgroundColor(Color.rgb(255, 255, 255));
 
                         int index = parms.indexOf(resId);
@@ -62,8 +61,8 @@ public class SelectGlassesActivity extends AppCompatActivity {
 
 
 
-                Toast.makeText(getApplicationContext(),"Check ed"+resId,
-                        Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getApplicationContext(),"Check ed"+resId,
+//                        Toast.LENGTH_SHORT).show();
 
             }
         });
@@ -74,8 +73,8 @@ public class SelectGlassesActivity extends AppCompatActivity {
                 Intent intent = new Intent(SelectGlassesActivity.this, CameraActivity.class);
                 intent.putIntegerArrayListExtra("imageArray", parms);
 
-                Toast.makeText(getApplicationContext(),"Check ed"+parms,
-                        Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getApplicationContext(),"Check ed"+parms,
+//                        Toast.LENGTH_SHORT).show();
                 startActivity(intent);
             }
         });

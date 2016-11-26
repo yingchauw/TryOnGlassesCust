@@ -49,8 +49,9 @@ public class ImageAdapter extends BaseAdapter {
 
     // references to our images
    static public Integer[] mThumbIds = {
+            R.drawable.glasses2,
             R.drawable.glasses3, R.drawable.glasses4,
             R.drawable.glasses5, R.drawable.glasses6,
-            R.drawable.glasses7
+            R.drawable.glasses7, R.drawable.glasses8,
     };
 }

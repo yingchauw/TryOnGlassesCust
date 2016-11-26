@@ -32,6 +32,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.objdetect.Objdetect;
@@ -294,7 +295,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 
-        if (mAccel > 12) {
+        if (mAccel > 11) {
             Log.d("","Shake Shake");
             getGlassNo = getGlassNo +1;
             getGlassNo = getGlassNo % myImageList.size() ;
@@ -312,10 +313,8 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                 streamID = soundPool.play(beepID, volume, volume, 1, 0, 1f);
             } while(streamID==0);
         }
-
         mRgba = inputFrame.rgba();
         mGray = inputFrame.gray();
-
         if (mAbsoluteFaceSize == 0) {
             int height = mGray.rows();
             if (Math.round(height * mRelativeFaceSize) > 0) {
@@ -324,7 +323,6 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
         }
         MatOfRect faces = new MatOfRect();
-
         if (mDetectorType == JAVA_DETECTOR) {
             if (mJavaDetector != null)
                 mJavaDetector.detectMultiScale(mGray, faces, 1.1, 2, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
@@ -333,7 +331,6 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
         else {
             Log.e(TAG, "Detection method is not selected!");
         }
-
         Rect[] facesArray = faces.toArray();
         if(facesArray.length==0){
             //Log.d("No faceDetected", "Current learn_frames = "+learn_frames);
@@ -343,14 +340,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
             for (int i = 0; i < facesArray.length; i++) {
                 xCenter = (facesArray[i].x + facesArray[i].width + facesArray[i].x) / 2;
                 yCenter = (facesArray[i].y + facesArray[i].y + facesArray[i].height) / 2;
-
                 Rect r = facesArray[i];
-                // compute the eye area
-                Rect eyearea = new Rect(r.x + r.width / 8,
-                        (int) (r.y + (r.height / 4.5)), r.width - 2 * r.width / 8,
-                        (int) (r.height / 3.0));
-
-                //Log.d("Result = ", "r is " + r.toString() + " x = " + r.x + " , y = " + r.y + "width = " + r.width + " , heigh = " + r.height);
                 // split it
                 Rect eyearea_right = new Rect(r.x + r.width / 16,
                         (int) (r.y + (r.height / 4.5)),
@@ -367,42 +357,36 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                     learn_frames++;
                     Log.d("Error", "Reach Frame");
                 } else {
-                    // Learning finished, use the new templates for template
-                    // matching
-
-                    //match_eye(eyearea_right, teplateRight, method);
-                    //match_eye(eyearea_left, teplateLeft, method);
-
-                    //get_template2(mJavaDetectorEye, eyearea_right, 24);
-                    //get_template2(mJavaDetectorEye, eyearea_left, 24);
-
                     Rect [] rightEyeArray = getEyeRec(mJavaDetectorEye, eyearea_right, 24);
                     Rect [] leftEyeArray = getEyeRec(mJavaDetectorEye, eyearea_left, 24);
 
                     if (rightEyeArray!=null && leftEyeArray!=null){
                         try {
                             double dist = Math.sqrt(Math.pow(((rightEyeArray[0].x+eyearea_right.x)-(leftEyeArray[0].x + eyearea_left.x)),2)+Math.pow((rightEyeArray[0].y+eyearea_right.x)-(leftEyeArray[0].y+eyearea_left.y),2));
+                            myMat = Utils.loadResource(this, realGlassNo,  Imgcodecs.IMREAD_UNCHANGED);
 
-                            myMat = Utils.loadResource(this, realGlassNo);
-                            Imgproc.cvtColor(myMat,myMat,Imgproc.COLOR_RGB2BGRA,4);
+                            Imgproc.cvtColor(myMat,myMat,Imgproc.COLOR_RGB2BGRA);
+
                             double leftEyeY=myMat.height() /2;
                             double rightEyeY=myMat.height() /2;
                             double leftEyeX=myMat.width()/4;
                             double rightEyeX=myMat.width()*3/4;
                             double glassDist = Math.sqrt(Math.pow((rightEyeX-leftEyeX),2)+Math.pow(rightEyeY-leftEyeY,2));
                             Log.d("Glass Distance between ", "dist = " + glassDist);
-
                             double factor = dist/glassDist;
 
-                            //Size dsize = new Size(r.width, r.height);
-                            Size dsize = new Size(myMat.width() * factor, myMat.height() * factor);
+                            Size dSize = new Size(myMat.width() * factor, myMat.height() * factor);
                             Mat resizeLens = new Mat();
                             Mat mask = Utils.loadResource(this, realGlassNo, -1);
-                            Mat resizemask = new Mat();
-                            Imgproc.resize(myMat, resizeLens, dsize);
-                            Imgproc.resize(mask, resizemask, dsize);
-                            resizeLens.copyTo(mRgba.submat(new Rect(eyearea_right.x, eyearea_right.y , resizeLens.width(), resizeLens.height())), resizemask);
-                            //resizeLens.copyTo(mRgba.submat(new Rect(r.x, r.y, resizeLens.width(), resizeLens.height())), resizemask);
+                            Mat resizeMask = new Mat();
+                            Imgproc.resize(myMat, resizeLens, dSize);
+                            Imgproc.resize(mask, resizeMask, dSize);
+
+                            List <Mat> fourMat = new ArrayList <>();
+                            Core.split(resizeMask,fourMat);
+                            Mat ImageAplhaMask = fourMat.get(3);
+
+                            resizeLens.copyTo(mRgba.submat(new Rect(eyearea_right.x, eyearea_right.y , resizeLens.width(), resizeLens.height())),ImageAplhaMask);
                         }
                         catch(Exception ex){}
                     }
@@ -410,7 +394,6 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
             }
         }
-
         return mRgba;
     }
     private static Bitmap makeBlackTransparent(Bitmap image) {
@@ -482,60 +465,6 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
             return;
     }
 
-    private void match_eye(Rect area, Mat mTemplate, int type) {
-        Point matchLoc;
-        Mat mROI = mGray.submat(area);
-        int result_cols = mROI.cols() - mTemplate.cols() + 1;
-        int result_rows = mROI.rows() - mTemplate.rows() + 1;
-        // Check for bad template size
-        if (mTemplate.cols() == 0 || mTemplate.rows() == 0) {
-            return ;
-        }
-        Mat mResult = new Mat(result_cols, result_rows, CvType.CV_8U);
-
-        switch (type) {
-            case TM_SQDIFF:
-                Imgproc.matchTemplate(mROI, mTemplate, mResult, Imgproc.TM_SQDIFF);
-                break;
-            case TM_SQDIFF_NORMED:
-                Imgproc.matchTemplate(mROI, mTemplate, mResult,
-                        Imgproc.TM_SQDIFF_NORMED);
-                break;
-            case TM_CCOEFF:
-                Imgproc.matchTemplate(mROI, mTemplate, mResult, Imgproc.TM_CCOEFF);
-                break;
-            case TM_CCOEFF_NORMED:
-                Imgproc.matchTemplate(mROI, mTemplate, mResult,
-                        Imgproc.TM_CCOEFF_NORMED);
-                break;
-            case TM_CCORR:
-                Imgproc.matchTemplate(mROI, mTemplate, mResult, Imgproc.TM_CCORR);
-                break;
-            case TM_CCORR_NORMED:
-                Imgproc.matchTemplate(mROI, mTemplate, mResult,
-                        Imgproc.TM_CCORR_NORMED);
-                break;
-        }
-
-        Core.MinMaxLocResult mmres = Core.minMaxLoc(mResult);
-        // there is difference in matching methods - best match is max/min value
-        if (type == TM_SQDIFF || type == TM_SQDIFF_NORMED) {
-            matchLoc = mmres.minLoc;
-        } else {
-            matchLoc = mmres.maxLoc;
-        }
-
-        Point matchLoc_tx = new Point(matchLoc.x + area.x, matchLoc.y + area.y);
-        Point matchLoc_ty = new Point(matchLoc.x + mTemplate.cols() + area.x,
-                matchLoc.y + mTemplate.rows() + area.y);
-
-        Imgproc.rectangle(mRgba, matchLoc_tx, matchLoc_ty, new Scalar(255, 255, 0,
-                255));
-        Rect rec = new Rect(matchLoc_tx,matchLoc_ty);
-
-
-    }
-
     private Rect[] getEyeRec (CascadeClassifier clasificator, Rect area, int size) {
         Mat mROI = mGray.submat(area);
         MatOfRect eyes = new MatOfRect();
@@ -548,45 +477,6 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
             return eyesArray;
         else
             return null;
-    }
-
-    private Mat get_template2(CascadeClassifier clasificator, Rect area, int size) {
-        Mat template = new Mat();
-        Mat mROI = mGray.submat(area);
-        MatOfRect eyes = new MatOfRect();
-        Point iris = new Point();
-        Rect eye_template = new Rect();
-        clasificator.detectMultiScale(mROI, eyes, 1.15, 2,
-                Objdetect.CASCADE_FIND_BIGGEST_OBJECT
-                        | Objdetect.CASCADE_SCALE_IMAGE, new Size(30, 30),
-                new Size());
-
-        Rect[] eyesArray = eyes.toArray();
-        for (int i = 0; i < eyesArray.length;) {
-            Rect e = eyesArray[i];
-            e.x = area.x + e.x;
-            e.y = area.y + e.y;
-            Rect eye_only_rectangle = new Rect((int) e.tl().x,
-                    (int) (e.tl().y + e.height * 0.4), (int) e.width,
-                    (int) (e.height * 0.6));
-            mROI = mGray.submat(eye_only_rectangle);
-            Mat vyrez = mRgba.submat(eye_only_rectangle);
-
-
-            Core.MinMaxLocResult mmG = Core.minMaxLoc(mROI);
-
-            Imgproc.circle(vyrez, mmG.minLoc, 2, new Scalar(255, 255, 255, 255), 2);
-            iris.x = mmG.minLoc.x + eye_only_rectangle.x;
-            iris.y = mmG.minLoc.y + eye_only_rectangle.y;
-            eye_template = new Rect((int) iris.x - size / 2, (int) iris.y
-                    - size / 2, size, size);
-            Imgproc.rectangle(mRgba, eye_template.tl(), eye_template.br(),
-                    new Scalar(255, 0, 0, 255), 2);
-
-            template = (mGray.submat(eye_template)).clone();
-            return template;
-        }
-        return template;
     }
 
     private Mat get_template(CascadeClassifier clasificator, Rect area, int size) {

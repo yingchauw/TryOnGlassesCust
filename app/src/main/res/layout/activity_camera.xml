@@ -7,6 +7,7 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:id="@+id/fd_activity_surface_view" />
+    <!--
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -14,18 +15,17 @@
         android:layout_centerVertical="true"
         android:onClick="onRecreateClick"
         android:text="Recreate" />
-
+-->
     <TextView
         android:id="@+id/method"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/seekbars"
         android:layout_alignParentLeft="true"
         android:layout_margin="5dp"
         android:text="method"
         android:textColor="@android:color/white"
         android:textSize="10sp" />
-
+<!--
     <LinearLayout
         android:id="@+id/seekbars"
         android:layout_width="fill_parent"
@@ -46,4 +46,6 @@
 
 
     </LinearLayout>
+
+    -->
 </RelativeLayout>

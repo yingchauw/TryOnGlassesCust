@@ -94,6 +94,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
     private static int beepID=0;
     private String mDirectory;
     private String fileName;
+    Mat saveInPhoto;
 
     /** Populate the SoundPool*/
     public static void initSounds(Context context) {
@@ -392,6 +393,9 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                     learn_frames++;
                     Log.d("Error", "Reach Frame");
                 } else {
+                    teplateRight = get_template(mJavaDetectorLeftEye, eyearea_right, 24);
+                    teplateLeft = get_template(mJavaDetectorLeftEye, eyearea_left, 24);
+
                     Rect [] rightEyeArray = getEyeRec(mJavaDetectorLeftEye, eyearea_right, 24);
                     Rect [] leftEyeArray = getEyeRec(mJavaDetectorLeftEye, eyearea_left, 24);
 
@@ -426,6 +430,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
 
                             resizeLens.copyTo(mRgba.submat(new Rect(posx, posy, resizeLens.width(), resizeLens.height())),ImageAplhaMask);
+                            saveInPhoto=mRgba.clone();
                         }
                         catch(Exception ex){}
                     }
@@ -567,6 +572,10 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
         Date now = new Date();
         android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now);
         try {
+            //Mat saveInPhoto = mRgba.clone();
+            //coz OpenCV reads images with blue , green and red channel instead of red,green, blue
+            Imgproc.cvtColor(saveInPhoto, saveInPhoto, Imgproc.COLOR_BGR2RGB);
+
             String mPath = Environment.getExternalStorageDirectory().toString();
             mDirectory = mPath + "/Pictures/Screenshots";
             fileName = now + ".jpg";
@@ -576,16 +585,10 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                 success = folder.mkdir();
             }
             if (success) {
-
                 mPath = mPath + "/Pictures/Screenshots/" + fileName;
-                Mat saveInPhoto = mRgba.clone();
-                //coz OpenCV reads images with blue , green and red channel instead of red,green, blue
-                Imgproc.cvtColor(saveInPhoto, saveInPhoto, Imgproc.COLOR_BGR2RGB);
                 success = Imgcodecs.imwrite(mPath, saveInPhoto);
-
                 if (success) {
-
-                    Toast.makeText(getApplicationContext(), "File saved at " + mPath, Toast.LENGTH_SHORT).show();
+                   // Toast.makeText(getApplicationContext(), "File saved at " + mPath, Toast.LENGTH_SHORT).show();
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
                     builder.setTitle("Do you want to share?");
                     builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
@@ -607,9 +610,6 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                     });
                     AlertDialog dialog = builder.create();
                     dialog.show();
-
-
-
                 } else
                     Toast.makeText(getApplicationContext(), "File saved failure " + mPath, Toast.LENGTH_SHORT).show();
 

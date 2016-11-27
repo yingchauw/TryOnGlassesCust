@@ -1,5 +1,6 @@
 package hk.org.ust.csit.tryonglasses;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;

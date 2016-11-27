@@ -1,9 +1,13 @@
 package hk.org.ust.csit.tryonglasses;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.AdapterView;
@@ -28,6 +32,15 @@ public class SelectGlassesActivity extends AppCompatActivity {
     ArrayList<Integer> parms = new ArrayList<Integer>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
+                PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] {
+                            Manifest.permission.CAMERA
+                    }, 1);
+        }
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_select_glasses);
         GridView gridview = (GridView) findViewById(R.id.gridview);

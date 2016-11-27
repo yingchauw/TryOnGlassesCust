@@ -1,10 +1,12 @@
 package hk.org.ust.csit.tryonglasses;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.hardware.Sensor;
@@ -16,6 +18,8 @@ import android.media.SoundPool;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -214,6 +218,13 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+                PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] {
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    }, 1);
+        }
 
         Log.i(TAG, "called onCreate");
         Intent testIntent = getIntent();
@@ -431,6 +442,8 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
                             resizeLens.copyTo(mRgba.submat(new Rect(posx, posy, resizeLens.width(), resizeLens.height())),ImageAplhaMask);
                             saveInPhoto=mRgba.clone();
+                            //coz OpenCV reads images with blue , green and red channel instead of red,green, blue
+                            Imgproc.cvtColor(saveInPhoto, saveInPhoto, Imgproc.COLOR_BGR2RGB);
                         }
                         catch(Exception ex){}
                     }
@@ -476,37 +489,14 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        Log.i(TAG, "called onCreateOptionsMenu");
-        mItemFace50 = menu.add("Face size 50%");
-        mItemFace40 = menu.add("Face size 40%");
-        mItemFace30 = menu.add("Face size 30%");
-        mItemFace20 = menu.add("Face size 20%");
+        //to do
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
-        if (item == mItemFace50)
-            setMinFaceSize(0.5f);
-        else if (item == mItemFace40)
-            setMinFaceSize(0.4f);
-        else if (item == mItemFace30)
-            setMinFaceSize(0.3f);
-        else if (item == mItemFace20)
-            setMinFaceSize(0.2f);
-
+        //todo
         return true;
-    }
-
-    private void setMinFaceSize(float faceSize) {
-        mRelativeFaceSize = faceSize;
-        mAbsoluteFaceSize = 0;
-    }
-
-    private void CreateAuxiliaryMats() {
-        if (mGray.empty())
-            return;
     }
 
     private Rect[] getEyeRec (CascadeClassifier clasificator, Rect area, int size) {
@@ -573,9 +563,6 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
         android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now);
         try {
             //Mat saveInPhoto = mRgba.clone();
-            //coz OpenCV reads images with blue , green and red channel instead of red,green, blue
-            Imgproc.cvtColor(saveInPhoto, saveInPhoto, Imgproc.COLOR_BGR2RGB);
-
             String mPath = Environment.getExternalStorageDirectory().toString();
             mDirectory = mPath + "/Pictures/Screenshots";
             fileName = now + ".jpg";
@@ -590,7 +577,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                 if (success) {
                    // Toast.makeText(getApplicationContext(), "File saved at " + mPath, Toast.LENGTH_SHORT).show();
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setTitle("Do you want to share?");
+                    builder.setTitle("File has saved. Would you like to share this picture?");
                     builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
                             //share to fb
@@ -610,6 +597,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                     });
                     AlertDialog dialog = builder.create();
                     dialog.show();
+
                 } else
                     Toast.makeText(getApplicationContext(), "File saved failure " + mPath, Toast.LENGTH_SHORT).show();
 
@@ -623,34 +611,6 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
             e.printStackTrace();
 
         }
-        /*
-        try {
-            Imgcodecs.imwrite( Environment.getExternalStorageDirectory().toString() + "/Pictures/Screenshots/" + now + "2.jpg", mRgba );
-            // image naming and path  to include sd card  appending name you choose for file
-            String mPath = Environment.getExternalStorageDirectory().toString() + "/Pictures/Screenshots/" + now + ".jpg";
-
-            Toast.makeText(getApplicationContext(),mPath,
-                    Toast.LENGTH_SHORT).show();
-
-            // create bitmap screen capture
-            View v1 = getWindow().getDecorView().getRootView();
-            v1.setDrawingCacheEnabled(true);
-            Bitmap bitmap = Bitmap.createBitmap(v1.getDrawingCache());
-            v1.setDrawingCacheEnabled(false);
-
-            File imageFile = new File(mPath);
-
-            FileOutputStream outputStream = new FileOutputStream(imageFile);
-            int quality = 100;
-            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream);
-            outputStream.flush();
-            outputStream.close();
-
-            //openScreenshot(imageFile);
-        } catch (Throwable e) {
-            // Several error may come out with file handling or OOM
-            e.printStackTrace();
-        }*/
     }
 
     private void openScreenshot(File imageFile) {
@@ -663,12 +623,10 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
     }
 }
 

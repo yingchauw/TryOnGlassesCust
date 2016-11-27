@@ -1,21 +1,29 @@
 package hk.org.ust.csit.tryonglasses;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.SoundPool;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Toast;
+
+
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -40,6 +48,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class CameraActivity extends Activity implements SensorEventListener, CvCameraViewListener2  {
@@ -83,6 +92,8 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
     private int realGlassNo = 0;
     private static SoundPool soundPool;
     private static int beepID=0;
+    private String mDirectory;
+    private String fileName;
 
     /** Populate the SoundPool*/
     public static void initSounds(Context context) {
@@ -222,6 +233,8 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
         //setContentView(R.layout.face_detect_surface_view);
         setContentView(R.layout.activity_camera);
 
+
+
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.fd_activity_surface_view);
         mOpenCvCameraView.setCvCameraViewListener(this);
 
@@ -234,14 +247,14 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
             @Override
             public void onStopTrackingTouch(SeekBar seekBar)
             {
-                // TODO Auto-generated method stub
+
 
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar)
             {
-                // TODO Auto-generated method stub
+
 
             }
 
@@ -347,7 +360,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
         MatOfRect faces = new MatOfRect();
         if (mDetectorType == JAVA_DETECTOR) {
             if (mJavaDetector != null)
-                mJavaDetector.detectMultiScale(mGray, faces, 1.1, 2, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+                mJavaDetector.detectMultiScale(mGray, faces, 1.1, 2, 2,
                         new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size());
         }
         else {
@@ -374,12 +387,12 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                 // draw the area - mGray is working grayscale mat, if you want to
 
                 if (learn_frames < 5) {
-                    teplateRight = get_template(mJavaDetectorRightEye, eyearea_right, 24);
+                    teplateRight = get_template(mJavaDetectorLeftEye, eyearea_right, 24);
                     teplateLeft = get_template(mJavaDetectorLeftEye, eyearea_left, 24);
                     learn_frames++;
                     Log.d("Error", "Reach Frame");
                 } else {
-                    Rect [] rightEyeArray = getEyeRec(mJavaDetectorRightEye, eyearea_right, 24);
+                    Rect [] rightEyeArray = getEyeRec(mJavaDetectorLeftEye, eyearea_right, 24);
                     Rect [] leftEyeArray = getEyeRec(mJavaDetectorLeftEye, eyearea_left, 24);
 
                     if (rightEyeArray!=null && leftEyeArray!=null){
@@ -541,6 +554,109 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
         learn_frames = 0;
     }
 
+    public void onCameraClick(View v)
+    {
+        takeScreenshot();
+    }
+
+    private void takeScreenshot() {
+        Date now = new Date();
+        android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now);
+        try {
+            String mPath = Environment.getExternalStorageDirectory().toString();
+            mDirectory = mPath + "/Pictures/Screenshots";
+            fileName = now + ".jpg";
+            File folder = new File(mPath + "/Pictures/Screenshots");
+            boolean success = true;
+            if (!folder.exists()) {
+                success = folder.mkdir();
+            }
+            if (success) {
+
+                mPath = mPath + "/Pictures/Screenshots/" + fileName;
+                Mat saveInPhoto = mRgba.clone();
+                //coz OpenCV reads images with blue , green and red channel instead of red,green, blue
+                Imgproc.cvtColor(saveInPhoto, saveInPhoto, Imgproc.COLOR_BGR2RGB);
+                success = Imgcodecs.imwrite(mPath, saveInPhoto);
+
+                if (success) {
+
+                    Toast.makeText(getApplicationContext(), "File saved at " + mPath, Toast.LENGTH_SHORT).show();
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setTitle("Do you want to share?");
+                    builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            //share to fb
+                            final Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                            shareIntent.setType("image/jpg");
+                            final File photoFile = new File(mDirectory, fileName);
+                            shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(photoFile));
+                            startActivity(Intent.createChooser(shareIntent, "Share image using"));
+                            dialog.dismiss();
+                        }
+                    });
+                    builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            //TODO
+                            dialog.dismiss();
+                        }
+                    });
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+
+
+
+                } else
+                    Toast.makeText(getApplicationContext(), "File saved failure " + mPath, Toast.LENGTH_SHORT).show();
+
+                saveInPhoto.release();
+            } else
+                Toast.makeText(getApplicationContext(), "Create folder failure in location " + mPath + "/Pictures/Screenshots", Toast.LENGTH_SHORT).show();
+        } catch (Throwable e) {
+            // Several error may come out with file handling or OOM
+            Toast.makeText(getApplicationContext(), e.toString(),
+                    Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+
+        }
+        /*
+        try {
+            Imgcodecs.imwrite( Environment.getExternalStorageDirectory().toString() + "/Pictures/Screenshots/" + now + "2.jpg", mRgba );
+            // image naming and path  to include sd card  appending name you choose for file
+            String mPath = Environment.getExternalStorageDirectory().toString() + "/Pictures/Screenshots/" + now + ".jpg";
+
+            Toast.makeText(getApplicationContext(),mPath,
+                    Toast.LENGTH_SHORT).show();
+
+            // create bitmap screen capture
+            View v1 = getWindow().getDecorView().getRootView();
+            v1.setDrawingCacheEnabled(true);
+            Bitmap bitmap = Bitmap.createBitmap(v1.getDrawingCache());
+            v1.setDrawingCacheEnabled(false);
+
+            File imageFile = new File(mPath);
+
+            FileOutputStream outputStream = new FileOutputStream(imageFile);
+            int quality = 100;
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream);
+            outputStream.flush();
+            outputStream.close();
+
+            //openScreenshot(imageFile);
+        } catch (Throwable e) {
+            // Several error may come out with file handling or OOM
+            e.printStackTrace();
+        }*/
+    }
+
+    private void openScreenshot(File imageFile) {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+        Uri uri = Uri.fromFile(imageFile);
+        intent.setDataAndType(uri, "image/*");
+        startActivity(intent);
+    }
+
     @Override
     public void onSensorChanged(SensorEvent event) {
 
@@ -551,3 +667,4 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
     }
 }
+

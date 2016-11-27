@@ -1,10 +1,12 @@
 package hk.org.ust.csit.tryonglasses;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.hardware.Sensor;
@@ -16,6 +18,8 @@ import android.media.SoundPool;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -214,7 +218,13 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
-
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+                PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] {
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    }, 1);
+        }
         Log.i(TAG, "called onCreate");
         Intent testIntent = getIntent();
         myImageList=testIntent.getIntegerArrayListExtra("imageArray");
@@ -331,7 +341,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 
-        if (mAccel > 11) {
+        if (mAccel > 5) {
             Log.d("","Shake Shake");
             getGlassNo = getGlassNo +1;
             getGlassNo = getGlassNo % myImageList.size() ;
@@ -590,7 +600,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                 if (success) {
                    // Toast.makeText(getApplicationContext(), "File saved at " + mPath, Toast.LENGTH_SHORT).show();
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setTitle("Do you want to share?");
+                    builder.setTitle("File saved. Do you want to share?");
                     builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
                             //share to fb

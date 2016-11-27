@@ -8,22 +8,29 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="hk.org.ust.csit.tryonglasses.MainActivity">
+    tools:context="hk.org.ust.csit.tryonglasses.MainActivity"
+    android:background="@drawable/background">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Tryon Glasses"
-        android:textSize="36sp"
+        android:textSize="60sp"
         android:layout_marginTop="150dp"
-        android:layout_marginLeft="50dp" />
+        android:fontFamily="cursive"
+        android:textStyle="bold"
+        android:textColor="@android:color/white"
+        android:layout_alignParentRight="false"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="false" />
 
     <Button
-        android:text="Select Glasses"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/textView"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="250dp"
-        android:id="@+id/btnSelectGlasses" />
+        android:id="@+id/btnSelectGlasses"
+        android:background="@drawable/button1"
+        android:fontFamily="casual" />
 </RelativeLayout>

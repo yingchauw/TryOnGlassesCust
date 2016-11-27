@@ -397,7 +397,7 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
 
                     if (rightEyeArray!=null && leftEyeArray!=null){
                         try {
-                            double dist = Math.sqrt(Math.pow(((rightEyeArray[0].x+eyearea_right.x)-(leftEyeArray[0].x + eyearea_left.x)),2)+Math.pow((rightEyeArray[0].y+eyearea_right.x)-(leftEyeArray[0].y+eyearea_left.y),2));
+                            double dist = Math.sqrt(Math.pow(((rightEyeArray[0].x+eyearea_right.x)-(leftEyeArray[0].x + eyearea_left.x)),2)+Math.pow((rightEyeArray[0].y+eyearea_right.y)-(leftEyeArray[0].y+eyearea_left.y),2));
                             myMat = Utils.loadResource(this, realGlassNo,  Imgcodecs.IMREAD_UNCHANGED);
 
                             Imgproc.cvtColor(myMat,myMat,Imgproc.COLOR_RGB2BGRA);
@@ -421,7 +421,11 @@ public class CameraActivity extends Activity implements SensorEventListener, CvC
                             Core.split(resizeMask,fourMat);
                             Mat ImageAplhaMask = fourMat.get(3);
 
-                            resizeLens.copyTo(mRgba.submat(new Rect(eyearea_right.x, eyearea_right.y , resizeLens.width(), resizeLens.height())),ImageAplhaMask);
+                            int posy =(int)(r.y + (yCenter - r.y - (rightEyeY*1.5 *factor)));
+                            int posx =(int)(r.x + (xCenter - r.x - (rightEyeX *0.65* factor)));
+
+
+                            resizeLens.copyTo(mRgba.submat(new Rect(posx, posy, resizeLens.width(), resizeLens.height())),ImageAplhaMask);
                         }
                         catch(Exception ex){}
                     }
